@@ -1,0 +1,9 @@
+(executables
+ (names MqttLogStdoutApp MqttLogStdoutAppPublish)
+ (public_names MqttLogStdoutApp MqttLogStdoutAppPublish)
+ (libraries mqtt-client lwt))
+
+(env
+ (docker
+  (flags
+   (:standard -ccopt -static))))

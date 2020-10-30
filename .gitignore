@@ -1,0 +1,10 @@
+# editor
+.vscode
+
+# esy stuff
+_esy
+node_modules
+
+# standard ocaml
+*.install
+.merlin

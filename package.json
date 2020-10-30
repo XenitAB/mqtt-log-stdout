@@ -1,0 +1,38 @@
+{
+  "name": "mqtt-log-stdout",
+  "version": "0.1.0",
+  "description": "Starter Reason Project",
+  "esy": {
+    "build": "dune build -p #{self.name}",
+    "buildDev": "pesy build",
+    "release": {
+      "rewritePrefix": true,
+      "releasedBinaries": [
+        "MqttLogStdoutApp"
+      ]
+    }
+  },
+  "pesy": {
+    "azure-project": "esy-dev/esy",
+    "github": "esy/pesy-reason-template"
+  },
+  "scripts": {
+    "start": "esy x MqttLogStdoutApp"
+  },
+  "dependencies": {
+    "@opam/dune": "*",
+    "@opam/lwt": "*",
+    "@opam/cstruct": "^5.0.0",
+    "@opam/cstruct-sexp": "^5.0.0",
+    "ocaml-mqtt": "ulrikstrid/ocaml-mqtt#ee8bab90a8364ed9e93501e3c126b66c4fa8987d",
+    "@esy-ocaml/reason": "*",
+    "@pesy/esy-pesy": "0.1.0-alpha.11",
+    "ocaml": "~4.10.0"
+  },
+  "devDependencies": {
+    "@opam/merlin": "*",
+    "@opam/ocamlformat": "*",
+    "@opam/ocaml-lsp-server": "ocaml/ocaml-lsp:ocaml-lsp-server.opam",
+    "refmterr": "*"
+  }
+}
