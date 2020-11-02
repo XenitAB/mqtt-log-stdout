@@ -1,6 +1,6 @@
 {
   "name": "mqtt-log-stdout",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "description": "Starter Reason Project",
   "esy": {
     "build": "dune build -p #{self.name}",
@@ -24,7 +24,7 @@
     "@opam/lwt": "*",
     "@opam/cstruct": "^5.0.0",
     "@opam/cstruct-sexp": "^5.0.0",
-    "ocaml-mqtt": "ulrikstrid/ocaml-mqtt#ee8bab90a8364ed9e93501e3c126b66c4fa8987d",
+    "ocaml-mqtt": "ulrikstrid/ocaml-mqtt#7bc7de03734128c94032ce2c08abe3012b78d098",
     "@esy-ocaml/reason": "*",
     "@pesy/esy-pesy": "0.1.0-alpha.11",
     "ocaml": "~4.10.0"
