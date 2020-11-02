@@ -2,8 +2,19 @@ apiVersion: v1
 entries:
   mqtt-log-stdout:
   - apiVersion: v2
+    appVersion: v1.0.2
+    created: "2020-11-02T15:03:49.595805276Z"
+    description: A Helm chart for mqtt-log-stdout a micro service for logging mqtt
+      messages to stdout
+    digest: a28362adc820d29242aa56c776bfb912efd5b325d0ab41d95d00c75837cb0c74
+    name: mqtt-log-stdout
+    type: application
+    urls:
+    - https://XenitAB.github.io/mqtt-log-stdout/mqtt-log-stdout-v1.0.2.tgz
+    version: v1.0.2
+  - apiVersion: v2
     appVersion: v1.0.0
-    created: "2020-11-02T14:56:47.703783389Z"
+    created: "2020-11-02T15:03:49.595405575Z"
     description: A Helm chart for mqtt-log-stdout a micro service for logging mqtt
       messages to stdout
     digest: 31bbec0a877594473cad01a94c1a8a9d623af0c964f4d2122fa7fc1cd1785869
@@ -12,4 +23,4 @@ entries:
     urls:
     - https://XenitAB.github.io/mqtt-log-stdout/mqtt-log-stdout-v1.0.0.tgz
     version: v1.0.0
-generated: "2020-11-02T14:56:47.702677889Z"
+generated: "2020-11-02T15:03:49.594137672Z"
