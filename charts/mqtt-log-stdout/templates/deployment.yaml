@@ -26,6 +26,21 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
+          env:
+            - name: MQTT_HOST_1
+              value: "{{ required "A valid .Values.mqtt_settings.host_1 entry required!" .Values.mqtt_settings.host_1 }}"
+            {{- if .Values.mqtt_settings.host_2 }}
+            - name: MQTT_HOST_2
+              value: "{{ .Values.mqtt_settings.host_2 }}"
+            {{- end }}
+            {{- if .Values.mqtt_settings.host_3 }}
+            - name: MQTT_HOST_3
+              value: "{{ .Values.mqtt_settings.host_3 }}"
+            {{- end }}
+            - name: MQTT_PORT
+              value: "{{ .Values.mqtt_settings.port}}"
+            - name: LOG_TOPIC
+              value: "{{ required "A valid .Values.mqtt_settings.topic entry required!" .Values.mqtt_settings.topic}}"
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

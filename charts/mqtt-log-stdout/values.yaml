@@ -1,7 +1,7 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
-  repository: ghcr.io/xenitab/mqtt-log-stdout:1.0.0
+  repository: ghcr.io/xenitab/mqtt-log-stdout
   pullPolicy: IfNotPresent
   tag: ""
 
@@ -44,3 +44,10 @@ tolerations: []
 affinity: {}
 
 configSecretName: ""
+
+mqtt_settings:
+  host_1: ""
+  host_2: ""
+  host_3: ""
+  port: 1883
+  topic: ""
