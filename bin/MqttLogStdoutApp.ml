@@ -38,9 +38,7 @@ let subscribe () =
   (* Create a MQTT client and connect it *)
   let* client = Mqtt_client.connect ~keep_alive:60 ~id:client_id ~port hosts in
   (* Start subscribing to the topic we want *)
-  let* () =
-    Mqtt_client.subscribe [ (topic, Mqtt_client.Atleast_once) ] client
-  in
+  let* () = Mqtt_client.subscribe [ (topic, Mqtt_client.Atmost_once) ] client in
   (* Get a stream of messages from the topic *)
   let stream = Mqtt_client.messages client in
   (* For each message on the stream we print it to stdout *)
