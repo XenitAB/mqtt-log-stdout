@@ -1,8 +1,13 @@
 name: ci
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+    - 'v*.*.*'
+    branches:
+        - "main"
+  pull_request:
+
 
 jobs:
   main:
@@ -19,7 +24,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: ghcr.io/xenitab/mqtt-log-stdout
+
       - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v1 
         with:          
           registry: ghcr.io
@@ -29,7 +41,6 @@ jobs:
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v2
         with:
-          push: true
-          tags: |
-            ghcr.io/xenitab/mqtt-log-stdout:latest
-            ghcr.io/xenitab/mqtt-log-stdout:${GITHUB_REF#refs/tags/}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
