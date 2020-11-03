@@ -11,6 +11,10 @@ fullnameOverride: ""
 
 podAnnotations: {}
 
+# Extra labels to put on agent pods.  Values must be strings per the k8s label
+# schema.
+extraPodLabels: {}
+
 podSecurityContext:
   {}
   # fsGroup: 2000

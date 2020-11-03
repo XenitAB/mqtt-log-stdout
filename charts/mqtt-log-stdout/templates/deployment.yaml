@@ -17,6 +17,9 @@ spec:
     {{- end }}
       labels:
         {{- include "mqtt-log-stdout.selectorLabels" . | nindent 8 }}
+      {{- with .Values.extraPodLabels }}
+        {{ toYaml . | indent 8 | trim }}
+      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

@@ -12,7 +12,7 @@ let pub_example () =
     let* () = Lwt_io.printl "Publishing..." in
     let* line = Lwt_io.read_line Lwt_io.stdin in
     let* () =
-      C.publish ~qos:C.Atleast_once ~topic:"xotclient/x/v1/log" line client
+      C.publish ~qos:C.Atleast_once ~topic:"client/x/v1/log" line client
     in
     let* () = Lwt_io.printl "Published." in
     loop ()
