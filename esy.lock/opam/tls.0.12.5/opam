@@ -17,7 +17,7 @@ depends: [
   "dune" {>= "1.0"}
   "ppx_sexp_conv" {>= "v0.9.0"}
   "ppx_cstruct" {>= "3.0.0"}
-  "cstruct" {>= "4.0.0" & < "6.0.0"}
+  "cstruct" {>= "4.0.0"}
   "cstruct-sexp"
   "sexplib"
   "mirage-crypto" {>= "0.8.1"}
@@ -54,15 +54,15 @@ algorithm, and hash algorithm are negotiated.
 
 Read [further](https://nqsb.io) and our [Usenix Security 2015 paper](https://usenix15.nqsb.io).
 """
-x-commit-hash: "8ab44bed9e14334527a044e1430510315fae73a7"
+x-commit-hash: "8f8506f6998a538331bd92374cb1a06ab727f470"
 authors: [
   "David Kaloper <david@numm.org>" "Hannes Mehnert <hannes@mehnert.org>"
 ]
 url {
   src:
-    "https://github.com/mirleft/ocaml-tls/releases/download/v0.12.4/tls-v0.12.4.tbz"
+    "https://github.com/mirleft/ocaml-tls/releases/download/v0.12.5/tls-v0.12.5.tbz"
   checksum: [
-    "sha256=4983e09f9394a7594ce6fbe4bfd193dec61ec7c0a0cbcc75985da1d7518accd4"
-    "sha512=8851df811eb4d7cfc9d09aead278b0ba9fb1dc10b151eec766635956829fb3fd7c40ac946269e89cca1020091a1a3474d51ff83395400edfd66fe436943d15f5"
+    "sha256=0b050439244ddc2aff5ad36c8bb4163d6abcd4bfca84c213a3a90d8aba1b50ff"
+    "sha512=9c6290843b63090b655a1562d69582f58c31acd5d6512e18f1e24b2cd8e00e3b334d99be6279f209919c20231fd8422dcc271d4439d955aead44fc0d1ff29d08"
   ]
 }
