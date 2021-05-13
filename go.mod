@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/eclipse/paho.mqtt.golang v1.3.4
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/client_model v0.2.0
