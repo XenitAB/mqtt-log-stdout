@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mqtt-log-stdout
+description: A Helm chart for mqtt-log-stdout a micro service for logging mqtt messages to stdout
+type: application
+version: v0.0.0 # Will be updated during release
+appVersion: v0.0.0 # Will be updated during release
