@@ -1,0 +1,5 @@
+# ACL for anonymous clients
+topic test/+
+topic write write/+
+topic read read/+
+topic read read
