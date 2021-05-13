@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.18.0
+	github.com/prometheus/common v0.24.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/goleak v1.1.10
 )
