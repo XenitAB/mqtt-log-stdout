@@ -1,0 +1,104 @@
+name: End-to-End
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 4 * * *'
+
+env:
+  NAME: "mqtt-log-stdout"
+
+jobs:
+  end-to-end:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2.3.4
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "^1.16.2"
+      - name: Prepare
+        id: prep
+        run: |
+          VERSION=sha-${GITHUB_SHA::8}
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF/refs\/tags\//}
+          fi
+          echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo ::set-output name=VERSION::${VERSION}
+      - name: Cache container layers
+        uses: actions/cache@v2.1.5
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1.1.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1.3.0
+      - name: Build and load (current arch)
+        run: |
+          docker buildx build --load -t ${{ env.NAME }}:${{ steps.prep.outputs.VERSION }} .
+      - name: Prepare test
+        run: |
+          mkdir -p tmp
+          
+          docker network create --driver bridge endtoend
+          docker run --network endtoend -p 1883:1883 -v "$(pwd)"/test/vernemq:/mnt -e "DOCKER_VERNEMQ_VMQ_ACL__ACL_FILE=/mnt/vmq.acl" -e "DOCKER_VERNEMQ_ACCEPT_EULA=yes" -e "DOCKER_VERNEMQ_ALLOW_ANONYMOUS=on" --name vernemq1 -d vernemq/vernemq
+          
+          # Give vernemq a few seconds to start
+          sleep 10
+          
+          echo MQTT_BROKER_ADDRESSES=vernemq1 > test/env
+          echo MQTT_TOPIC=test/log_entry >> test/env
+          
+          docker run --network endtoend --env-file ./test/env -p 8080:8080 --name ${{ env.NAME }} -d ${{ env.NAME }}:${{ steps.prep.outputs.VERSION }}
+          
+          sudo apt-get install mosquitto-clients
+      - name: Test mqtt-log-stdout
+        run: |
+          set -e
+          publish_messages() {
+            for i in `seq 1 $1`; do
+              mosquitto_pub -h localhost -p 1883 -t "test/log_entry" -i "publisher-${2}" -m "End-to-end test message (publisher-${2}): ${i}"
+            done
+          }
+
+          publish_messages 200 1 &
+          publish_messages 200 2 &
+          publish_messages 200 3 &
+          publish_messages 200 4 &
+
+          # Wait for all jobs to complete
+          wait
+
+          # Give the application a few seconds to process the messages
+          sleep 10
+
+          NUM_MESSAGES_RECEIVED=$(docker logs ${{ env.NAME }} | grep "End-to-end test message" | wc -l)
+          PUB1=$(docker logs ${{ env.NAME }} | grep "End-to-end test message (publisher-1)" | wc -l)
+          PUB2=$(docker logs ${{ env.NAME }} | grep "End-to-end test message (publisher-2)" | wc -l)
+          PUB3=$(docker logs ${{ env.NAME }} | grep "End-to-end test message (publisher-3)" | wc -l)
+          PUB4=$(docker logs ${{ env.NAME }} | grep "End-to-end test message (publisher-4)" | wc -l)
+
+          echo "Publisher #1: ${PUB1}"
+          echo "Publisher #2: ${PUB2}"
+          echo "Publisher #3: ${PUB3}"
+          echo "Publisher #4: ${PUB4}"
+          
+          if [[ "${NUM_MESSAGES_RECEIVED}" != "800" ]]; then
+            echo Expected 800 messages received. Was: ${NUM_MESSAGES_RECEIVED}
+            exit 1
+          fi
+
+          METRICS_COUNTER=$(curl -s localhost:8080/metrics | grep "mqtt_client_total_messages" | grep -v "#" | awk '{print $2}')
+          echo Metrics counter: ${METRICS_COUNTER}
+          if [[ "${METRICS_COUNTER}" != "800" ]]; then
+            echo Expected metrics counter to be 800. Was: ${METRICS_COUNTER}
+            exit 1
+          fi

@@ -1,25 +1,42 @@
-FROM reasonnative/ocaml:4.10.1 as builder
+# BUILDER
+FROM golang:1.16-alpine as builder
 
-RUN mkdir /app
-WORKDIR /app
+ARG VERSION
+ARG REVISION
+ARG CREATED
 
-COPY package.json esy.lock mqtt-log-stdout.opam dune-project /app/
+ENV VERSION=$VERSION
+ENV REVISION=$REVISION
+ENV CREATED=$CREATED
 
-RUN esy install
-RUN esy build-dependencies --release
+WORKDIR /workspace
 
-COPY ./bin /app/bin
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
 
-RUN esy dune build --profile=docker --release
+COPY Makefile Makefile
+COPY cmd/ cmd/
+COPY pkg/ pkg/
 
-RUN esy mv "#{self.target_dir / 'default' / 'bin' / 'MqttLogStdoutApp.exe'}" main.exe
+RUN apk add --no-cache make=4.3-r0 bash=5.1.0-r0
+RUN make build
 
-RUN strip main.exe
+#RUNTIME
+FROM alpine:3.13.5 as runtime
+LABEL org.opencontainers.image.source="https://github.com/XenitAB/mqtt-log-stdout"
 
-FROM scratch as runtime
+# hadolint ignore=DL3018
+RUN apk add --no-cache ca-certificates
 
-WORKDIR /app
+RUN apk add --no-cache tini=0.19.0-r0
 
-COPY --from=builder /app/main.exe main.exe
+WORKDIR /
+COPY --from=builder /workspace/bin/mqtt-log-stdout /usr/local/bin/
 
-ENTRYPOINT ["/app/main.exe"]
+RUN [ ! -e /etc/nsswitch.conf ] && echo "hosts: files dns" > /etc/nsswitch.conf
+
+RUN addgroup -S mqtt-log-stdout && adduser -S -g mqtt-log-stdout mqtt-log-stdout
+USER mqtt-log-stdout
+
+ENTRYPOINT [ "/sbin/tini", "--", "mqtt-log-stdout"]
