@@ -64,12 +64,7 @@ func TestStart(t *testing.T) {
 	defer timeoutCancel()
 
 	g.Go(func() error {
-		err := metricsServer.Stop(timeoutCtx)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return metricsServer.Stop(timeoutCtx)
 	})
 
 	if err := g.Wait(); err != nil {

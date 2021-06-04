@@ -120,12 +120,7 @@ func TestStart(t *testing.T) {
 	defer timeoutCancel()
 
 	g.Go(func() error {
-		err := mqttClient.Stop(timeoutCtx)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return mqttClient.Stop(timeoutCtx)
 	})
 
 	if err := g.Wait(); err != nil {

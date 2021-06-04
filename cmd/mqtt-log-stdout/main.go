@@ -111,23 +111,13 @@ type stopper interface {
 
 func start(ctx context.Context, g *errgroup.Group, s starter) {
 	g.Go(func() error {
-		err := s.Start(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return s.Start(ctx)
 	})
 }
 
 func stop(ctx context.Context, g *errgroup.Group, s stopper) {
 	g.Go(func() error {
-		err := s.Stop(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return s.Stop(ctx)
 	})
 }
 
