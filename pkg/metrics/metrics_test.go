@@ -1,9 +1,10 @@
 package metrics
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -11,9 +12,15 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
 	"go.uber.org/goleak"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestStart(t *testing.T) {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
+
 	statusClient := newFakeStatusClient()
 
 	opts := Options{
@@ -23,7 +30,15 @@ func TestStart(t *testing.T) {
 	}
 	metricsServer := NewServer(opts)
 
-	go metricsServer.Start()
+	g.Go(func() error {
+		err := metricsServer.Start(ctx)
+		if err != nil {
+			t.Errorf("Expected err to be nil: %q", err)
+			return err
+		}
+
+		return nil
+	})
 
 	fakeCounter := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "fake_counter",
@@ -40,9 +55,25 @@ func TestStart(t *testing.T) {
 		t.Errorf("Expected err to be nil: %q", err)
 	}
 
-	err = metricsServer.Stop()
-	if err != nil {
-		fmt.Printf("Error: %q\n", err)
+	cancel()
+
+	timeoutCtx, timeoutCancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer timeoutCancel()
+
+	g.Go(func() error {
+		err := metricsServer.Stop(timeoutCtx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		t.Errorf("Expected err to be nil: %q", err)
 	}
 
 	messageCount := int(*metrics["fake_counter"].Metric[0].Counter.Value)

@@ -1,17 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/mqtt-log-stdout/pkg/config"
 	"github.com/xenitab/mqtt-log-stdout/pkg/message"
 	"github.com/xenitab/mqtt-log-stdout/pkg/metrics"
 	"github.com/xenitab/mqtt-log-stdout/pkg/mqtt"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -30,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = start(cfg)
+	err = run(cfg)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -38,7 +40,10 @@ func main() {
 	os.Exit(0)
 }
 
-func start(cfg config.Client) error {
+func run(cfg config.Client) error {
+	g, ctx, cancel := newErrGroup()
+	defer cancel()
+
 	stopChan := newStopChannel()
 	defer signal.Stop(stopChan)
 
@@ -47,41 +52,83 @@ func start(cfg config.Client) error {
 	metricsServer := newMetricsServer(cfg, statusClient)
 	mqttClient := newMqttClient(cfg, statusClient, messageClient)
 
-	go metricsServer.Start()
+	start(ctx, g, metricsServer)
+	start(ctx, g, mqttClient)
 
-	var result error
-	err := mqttClient.Start()
-	if err != nil {
-		statusClient.Print("Received error starting mqtt client", err)
-		result = multierror.Append(result, err)
-	}
-
-	stoppedBy := func() string {
-		select {
-		case sig := <-stopChan:
-			return fmt.Sprintf("os.Signal (%s)", sig)
-		case <-mqttClient.Done():
-			return "mqtt client"
-		case <-metricsServer.Done():
-			return "metrics server"
-		}
-	}()
-
+	stoppedBy := waitForStop(stopChan, ctx)
 	statusClient.Print(fmt.Sprintf("Application stopping, initiated by: %s", stoppedBy), nil)
 
-	err = mqttClient.Stop()
+	cancel()
+
+	timeoutCtx, timeoutCancel := newTimeoutContext()
+	defer timeoutCancel()
+
+	stop(timeoutCtx, g, mqttClient)
+	stop(timeoutCtx, g, metricsServer)
+
+	return waitForErrGroup(g)
+}
+
+func newErrGroup() (*errgroup.Group, context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	g, ctx := errgroup.WithContext(ctx)
+	return g, ctx, cancel
+}
+
+func waitForErrGroup(g *errgroup.Group) error {
+	err := g.Wait()
 	if err != nil {
-		statusClient.Print("Received error stopping mqtt client", err)
-		result = multierror.Append(result, err)
+		return fmt.Errorf("error groups error: %w", err)
 	}
 
-	err = metricsServer.Stop()
-	if err != nil {
-		statusClient.Print("Received error stopping metrics server", err)
-		result = multierror.Append(result, err)
-	}
+	return nil
+}
 
-	return result
+func newTimeoutContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+}
+
+func waitForStop(stopChan chan os.Signal, ctx context.Context) string {
+	select {
+	case sig := <-stopChan:
+		return fmt.Sprintf("os.Signal (%s)", sig)
+	case <-ctx.Done():
+		return "context"
+	}
+}
+
+type starter interface {
+	Start(ctx context.Context) error
+}
+
+type stopper interface {
+	Stop(ctx context.Context) error
+}
+
+func start(ctx context.Context, g *errgroup.Group, s starter) {
+	g.Go(func() error {
+		err := s.Start(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func stop(ctx context.Context, g *errgroup.Group, s stopper) {
+	g.Go(func() error {
+		err := s.Stop(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func newConfigClient() (config.Client, error) {

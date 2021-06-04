@@ -12,9 +12,15 @@ import (
 	"github.com/xenitab/mqtt-log-stdout/pkg/message"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
 	"go.uber.org/goleak"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestStart(t *testing.T) {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
+
 	args := []string{""}
 	hmqConfig, err := hmqBroker.ConfigureConfig(args)
 	if err != nil {
@@ -57,10 +63,16 @@ func TestStart(t *testing.T) {
 	}
 
 	mqttClient := NewClient(opts)
-	err = mqttClient.Start()
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
+
+	g.Go(func() error {
+		err := mqttClient.Start(ctx)
+		if err != nil {
+			t.Errorf("Expected err to be nil: %q", err)
+			return err
+		}
+
+		return nil
+	})
 
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
 		if mqttClient.Connected() {
@@ -99,10 +111,24 @@ func TestStart(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err = mqttClient.StopWithContext(ctx)
-	if err != nil {
+	cancel()
+
+	timeoutCtx, timeoutCancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer timeoutCancel()
+
+	g.Go(func() error {
+		err := mqttClient.Stop(timeoutCtx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		t.Errorf("Expected err to be nil: %q", err)
 	}
 
