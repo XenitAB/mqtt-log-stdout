@@ -80,15 +80,15 @@ func TestService(t *testing.T) {
 		errGroup, ctx, cancel := NewErrGroupAndContext()
 		defer cancel()
 
-		for _, svc := range c.startServices {
-			StartService(ctx, errGroup, svc)
+		for i := range c.startServices {
+			StartService(ctx, errGroup, c.startServices[i])
 		}
 
 		timeoutCtx, timeoutCancel := NewShutdownTimeoutContext()
 		defer timeoutCancel()
 
-		for _, svc := range c.stopServices {
-			StopService(timeoutCtx, errGroup, svc)
+		for i := range c.stopServices {
+			StopService(timeoutCtx, errGroup, c.stopServices[i])
 		}
 
 		err := WaitForErrGroup(errGroup)
