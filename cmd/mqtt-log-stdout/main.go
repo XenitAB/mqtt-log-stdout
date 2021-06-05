@@ -1,19 +1,16 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/xenitab/mqtt-log-stdout/pkg/config"
+	h "github.com/xenitab/mqtt-log-stdout/pkg/helper"
 	"github.com/xenitab/mqtt-log-stdout/pkg/message"
 	"github.com/xenitab/mqtt-log-stdout/pkg/metrics"
 	"github.com/xenitab/mqtt-log-stdout/pkg/mqtt"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -26,7 +23,7 @@ var (
 )
 
 func main() {
-	cfg, err := newConfigClient()
+	cfg, err := newConfigClient(Version, Revision, Created)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to generate config: %q\n", err)
 		os.Exit(1)
@@ -41,10 +38,10 @@ func main() {
 }
 
 func run(cfg config.Client) error {
-	g, ctx, cancel := newErrGroup()
+	errGroup, ctx, cancel := h.NewErrGroupAndContext()
 	defer cancel()
 
-	stopChan := newStopChannel()
+	stopChan := h.NewStopChannel()
 	defer signal.Stop(stopChan)
 
 	statusClient := newStatusClient(cfg)
@@ -52,80 +49,28 @@ func run(cfg config.Client) error {
 	metricsServer := newMetricsServer(cfg, statusClient)
 	mqttClient := newMqttClient(cfg, statusClient, messageClient)
 
-	start(ctx, g, metricsServer)
-	start(ctx, g, mqttClient)
+	h.StartService(ctx, errGroup, metricsServer)
+	h.StartService(ctx, errGroup, mqttClient)
 
-	stoppedBy := waitForStop(stopChan, ctx)
+	stoppedBy := h.WaitForStop(stopChan, ctx)
 	statusClient.Print(fmt.Sprintf("Application stopping, initiated by: %s", stoppedBy), nil)
 
 	cancel()
 
-	timeoutCtx, timeoutCancel := newTimeoutContext()
+	timeoutCtx, timeoutCancel := h.NewShutdownTimeoutContext()
 	defer timeoutCancel()
 
-	stop(timeoutCtx, g, mqttClient)
-	stop(timeoutCtx, g, metricsServer)
+	h.StopService(timeoutCtx, errGroup, mqttClient)
+	h.StopService(timeoutCtx, errGroup, metricsServer)
 
-	return waitForErrGroup(g)
+	return h.WaitForErrGroup(errGroup)
 }
 
-func newErrGroup() (*errgroup.Group, context.Context, context.CancelFunc) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	g, ctx := errgroup.WithContext(ctx)
-	return g, ctx, cancel
-}
-
-func waitForErrGroup(g *errgroup.Group) error {
-	err := g.Wait()
-	if err != nil {
-		return fmt.Errorf("error groups error: %w", err)
-	}
-
-	return nil
-}
-
-func newTimeoutContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(
-		context.Background(),
-		10*time.Second,
-	)
-}
-
-func waitForStop(stopChan chan os.Signal, ctx context.Context) string {
-	select {
-	case sig := <-stopChan:
-		return fmt.Sprintf("os.Signal (%s)", sig)
-	case <-ctx.Done():
-		return "context"
-	}
-}
-
-type starter interface {
-	Start(ctx context.Context) error
-}
-
-type stopper interface {
-	Stop(ctx context.Context) error
-}
-
-func start(ctx context.Context, g *errgroup.Group, s starter) {
-	g.Go(func() error {
-		return s.Start(ctx)
-	})
-}
-
-func stop(ctx context.Context, g *errgroup.Group, s stopper) {
-	g.Go(func() error {
-		return s.Stop(ctx)
-	})
-}
-
-func newConfigClient() (config.Client, error) {
+func newConfigClient(version, revision, created string) (config.Client, error) {
 	opts := config.Options{
-		Version:  Version,
-		Revision: Revision,
-		Created:  Created,
+		Version:  version,
+		Revision: revision,
+		Created:  created,
 	}
 
 	return config.NewClient(opts)
@@ -171,10 +116,4 @@ func newMqttClient(cfg config.Client, statusClient status.Client, messageClient 
 	}
 
 	return mqtt.NewClient(opts)
-}
-
-func newStopChannel() chan os.Signal {
-	stopChan := make(chan os.Signal, 2)
-	signal.Notify(stopChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGPIPE)
-	return stopChan
 }
