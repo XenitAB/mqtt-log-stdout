@@ -18,7 +18,7 @@ func TestStart(t *testing.T) {
 	errGroup, ctx, cancel := h.NewErrGroupAndContext()
 	defer cancel()
 
-	statusClient := newFakeStatusClient()
+	statusClient := testNewFakeStatusClient(t)
 
 	opts := Options{
 		Address:      "0.0.0.0",
@@ -72,13 +72,21 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
-type fakeStatus struct{}
-
-func newFakeStatusClient() status.Client {
-	return &fakeStatus{}
+type testFakeStatus struct {
+	t *testing.T
 }
 
-func (s *fakeStatus) Print(m string, e error) {}
+func testNewFakeStatusClient(t *testing.T) status.Client {
+	t.Helper()
+
+	return &testFakeStatus{
+		t: t,
+	}
+}
+
+func (s *testFakeStatus) Print(m string, e error) {
+	s.t.Helper()
+}
 
 func testGetPrometheusMetrics(t *testing.T, url string) map[string]*dto.MetricFamily {
 	t.Helper()
