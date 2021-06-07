@@ -46,4 +46,5 @@ jobs:
           docker buildx build --load -t ${{ env.NAME }}:${{ steps.prep.outputs.VERSION }} .
       - name: Run end-to-end test
         run: |
+          set -e
           make e2e TAG=${{ steps.prep.outputs.VERSION }}
