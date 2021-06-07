@@ -78,3 +78,10 @@ gen-docs:
 .SILENT: build
 build:
 	go build -ldflags "-w -s -X main.Version=$(VERSION) -X main.Revision=$(REVISION) -X main.Created=$(CREATED)" -o bin/mqtt-log-stdout cmd/mqtt-log-stdout/main.go
+
+.PHONY: e2e
+.SILENT: e2e
+e2e:
+	./test/e2e/prepare.sh $(IMG)
+	./test/e2e/test.sh
+	./test/e2e/cleanup.sh
