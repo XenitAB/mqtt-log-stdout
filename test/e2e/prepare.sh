@@ -22,14 +22,16 @@ echo "$(timestamp) [PREPARE] Docker clean up finished."
 
 
 if [[ "${CI}" == "true" ]]; then
+    echo "$(timestamp) [PREPARE] Installing pre-requisites in CI started"
     sudo apt-get install mosquitto-clients parallel 1>/dev/null
-    echo "$(timestamp) [PREPARE] Installed pre-requisites in CI"
+    echo "$(timestamp) [PREPARE] Installing pre-requisites in CI finished"
 fi
 
 if [[ "${CI}" != "true" ]]; then
+    echo "$(timestamp) [PREPARE] Build of mqtt-log-stdout outside of CI started"
     docker build -t ${IMG} . 1>/dev/null
     VERSION="dev"
-    echo "$(timestamp) [PREPARE] Built mqtt-log-stdout outside of CI"
+    echo "$(timestamp) [PREPARE] Build of mqtt-log-stdout outside of CI finished"
 fi
 
 docker network create --driver bridge endtoend 1>/dev/null
