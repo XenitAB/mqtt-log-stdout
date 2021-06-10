@@ -30,16 +30,14 @@ type Options struct {
 type Client struct {
 	topic          string
 	qos            int
-	done           chan struct{}
-	doneMu         sync.Mutex
-	stopping       bool
-	stoppingMu     sync.Mutex
 	connected      bool
 	reconnectCount int
 	reconnectMu    sync.Mutex
 	statusClient   status.Client
 	messageClient  message.Client
 	mqttClient     pahomqtt.Client
+	ctxCancel      context.CancelFunc
+	ctxError       error
 }
 
 // NewClient returns a mqtt client
@@ -47,10 +45,8 @@ func NewClient(opts Options) *Client {
 	client := &Client{
 		topic:          opts.Topic,
 		qos:            opts.QoS,
-		done:           make(chan struct{}),
 		connected:      false,
 		reconnectCount: 0,
-		stopping:       false,
 		statusClient:   opts.StatusClient,
 		messageClient:  opts.MessageClient,
 	}
@@ -76,17 +72,6 @@ func NewClient(opts Options) *Client {
 	client.mqttClient = mqttClient
 
 	return client
-}
-
-// Done returns a channel that is closed if the application is stopped
-func (client *Client) Done() <-chan struct{} {
-	client.doneMu.Lock()
-	if client.done == nil {
-		client.done = make(chan struct{})
-	}
-	d := client.done
-	client.doneMu.Unlock()
-	return d
 }
 
 // Connected returns a bool if the MQTT client is connected or not
@@ -119,34 +104,8 @@ func (client *Client) resetReconnectAttempt() {
 	client.reconnectMu.Unlock()
 }
 
-// Stop stops the server and calls StopWithContext()
-func (client *Client) Stop() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err := client.StopWithContext(ctx)
-	return err
-}
-
 // StopWithContext takes a context and stops the server
-func (client *Client) StopWithContext(ctx context.Context) error {
-	// Check if MQTT client already has been (or is being) stopped
-	client.stoppingMu.Lock()
-	if client.stopping {
-		client.stoppingMu.Unlock()
-		return nil
-	}
-
-	client.stopping = true
-	client.stoppingMu.Unlock()
-
-	// If server.done already has been closed, it would cause an error
-	select {
-	case <-client.done:
-	default: // Channel is not closed, close it
-		close(client.done)
-	}
-
+func (client *Client) Stop(ctx context.Context) error {
 	// Stop the MQTT client
 	c := make(chan struct{})
 	go func() {
@@ -176,18 +135,31 @@ func (client *Client) StopWithContext(ctx context.Context) error {
 	return err
 }
 
+func (client *Client) setContext(ctx context.Context) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	client.ctxCancel = cancel
+	return ctx
+}
+
+func (client *Client) cancel(err error) {
+	client.ctxError = err
+	client.ctxCancel()
+}
+
 // Start starts the MQTT client
-func (client *Client) Start() error {
+func (client *Client) Start(ctx context.Context) error {
+	ctx = client.setContext(ctx)
 	token := client.mqttClient.Connect()
 
 	<-token.Done()
 	if token.Error() != nil {
 		client.statusClient.Print("Unable to connect to mqtt broker", token.Error())
-		_ = client.Stop()
 		return token.Error()
 	}
 
-	return nil
+	<-ctx.Done()
+
+	return client.ctxError
 }
 
 func (client *Client) messageHandler(c pahomqtt.Client, m pahomqtt.Message) {
@@ -204,14 +176,15 @@ func (client *Client) onConnectHandler(c pahomqtt.Client) {
 	<-subToken.Done()
 	if subToken.Error() != nil {
 		client.statusClient.Print(fmt.Sprintf("Unable to subscribe to topic: %s", client.topic), subToken.Error())
-		_ = client.Stop()
+		client.cancel(subToken.Error())
 		return
 	}
 
 	allowed := subscriptionAllowed(subToken, client.topic)
 	if !allowed {
-		client.statusClient.Print(fmt.Sprintf("Subscription not allowed to topic: %s", client.topic), fmt.Errorf("subscription not allowed"))
-		_ = client.Stop()
+		err := fmt.Errorf("subscription not allowed")
+		client.statusClient.Print(fmt.Sprintf("Subscription not allowed to topic: %s", client.topic), err)
+		client.cancel(err)
 		return
 	}
 

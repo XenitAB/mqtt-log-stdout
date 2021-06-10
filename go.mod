@@ -6,10 +6,11 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.3.4
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
 	github.com/gorilla/mux v1.8.0
-	github.com/hashicorp/go-multierror v1.1.1
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.25.0
+	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/goleak v1.1.10
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 )

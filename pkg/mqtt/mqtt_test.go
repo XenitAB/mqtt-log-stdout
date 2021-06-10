@@ -1,7 +1,6 @@
 package mqtt
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"testing"
@@ -9,22 +8,23 @@ import (
 
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
 	hmqBroker "github.com/fhmq/hmq/broker"
+	"github.com/stretchr/testify/require"
+	h "github.com/xenitab/mqtt-log-stdout/pkg/helper"
 	"github.com/xenitab/mqtt-log-stdout/pkg/message"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
 	"go.uber.org/goleak"
 )
 
 func TestStart(t *testing.T) {
+	errGroup, ctx, cancel := h.NewErrGroupAndContext()
+	defer cancel()
+
 	args := []string{""}
 	hmqConfig, err := hmqBroker.ConfigureConfig(args)
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
+	require.NoError(t, err)
 
 	mqttBroker, err := hmqBroker.NewBroker(hmqConfig)
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
+	require.NoError(t, err)
 	mqttBroker.Start()
 
 	mockBroker := net.JoinHostPort(hmqConfig.Host, hmqConfig.Port)
@@ -39,8 +39,8 @@ func TestStart(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	statusClient := newFakeStatusClient()
-	messageClient := newFakeMessageClient()
+	statusClient := testNewFakeStatusClient(t)
+	messageClient := testNewFakeMessageClient(t)
 
 	opts := Options{
 		BrokerAddresses: []string{mockBroker},
@@ -57,11 +57,10 @@ func TestStart(t *testing.T) {
 	}
 
 	mqttClient := NewClient(opts)
-	err = mqttClient.Start()
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
 
+	h.StartService(ctx, errGroup, mqttClient)
+
+	// Check that the mqtt client is connected
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
 		if mqttClient.Connected() {
 			break
@@ -74,24 +73,35 @@ func TestStart(t *testing.T) {
 	connOpts := pahomqtt.NewClientOptions().SetClientID("pub-client").SetCleanSession(true).SetKeepAlive(opts.KeepAlive).AddBroker(publishHost)
 
 	publishMqttClient := pahomqtt.NewClient(connOpts)
-	if token := publishMqttClient.Connect(); token.Wait() && token.Error() != nil {
-		t.Errorf("Expected err to be nil: %q", token.Error())
+	token := publishMqttClient.Connect()
+	token.Wait()
+	require.NoError(t, token.Error())
+
+	numberOfWorkers := 10
+	messagesPerWorker := 200
+	expectedMessageCount := messagesPerWorker * numberOfWorkers
+	publisherErrGroup, _, _ := h.NewErrGroupAndContext()
+
+	for w := 0; w < numberOfWorkers; w++ {
+		publisherErrGroup.Go(func() error {
+			for i := 0; i < messagesPerWorker; i++ {
+				message := fmt.Sprintf("test message %d", i)
+				publishToken := publishMqttClient.Publish(opts.Topic, byte(opts.QoS), false, message)
+
+				<-publishToken.Done()
+				require.NoError(t, publishToken.Error())
+			}
+
+			return nil
+		})
 	}
 
-	expectedMessageCount := 200
-	for i := 0; i < expectedMessageCount; i++ {
-		message := fmt.Sprintf("test message %d", i)
-		publishToken := publishMqttClient.Publish(opts.Topic, byte(opts.QoS), false, message)
-
-		<-publishToken.Done()
-		if publishToken.Error() != nil {
-			t.Errorf("Expected err to be nil: %q", publishToken.Error())
-		}
-	}
+	err = h.WaitForErrGroup(publisherErrGroup)
+	require.NoError(t, err)
 
 	var messageCount int
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		fakeMessageClient := messageClient.(*fakeMessage)
+		fakeMessageClient := messageClient.(*testFakeMessage)
 		messageCount = len(fakeMessageClient.messages)
 		if messageCount == expectedMessageCount {
 			break
@@ -99,17 +109,17 @@ func TestStart(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err = mqttClient.StopWithContext(ctx)
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
+	cancel()
 
-	if messageCount != expectedMessageCount {
-		t.Errorf("Expected messageCount to be %d but was %d", expectedMessageCount, messageCount)
-	}
+	timeoutCtx, timeoutCancel := h.NewShutdownTimeoutContext()
+	defer timeoutCancel()
 
+	h.StopService(timeoutCtx, errGroup, mqttClient)
+
+	err = h.WaitForErrGroup(errGroup)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedMessageCount, messageCount)
 }
 
 func TestMain(m *testing.M) {
@@ -129,24 +139,38 @@ func TestMain(m *testing.M) {
 	)
 }
 
-type fakeMessage struct {
+type testFakeMessage struct {
+	t        *testing.T
 	messages []string
 }
 
-func newFakeMessageClient() message.Client {
-	return &fakeMessage{
+func testNewFakeMessageClient(t *testing.T) message.Client {
+	t.Helper()
+
+	return &testFakeMessage{
+		t:        t,
 		messages: []string{},
 	}
 }
 
-func (client *fakeMessage) Print(m string) {
+func (client *testFakeMessage) Print(m string) {
+	client.t.Helper()
+
 	client.messages = append(client.messages, m)
 }
 
-type fakeStatus struct{}
-
-func newFakeStatusClient() status.Client {
-	return &fakeStatus{}
+type testFakeStatus struct {
+	t *testing.T
 }
 
-func (s *fakeStatus) Print(m string, e error) {}
+func testNewFakeStatusClient(t *testing.T) status.Client {
+	t.Helper()
+
+	return &testFakeStatus{
+		t: t,
+	}
+}
+
+func (s *testFakeStatus) Print(m string, e error) {
+	s.t.Helper()
+}

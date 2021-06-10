@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/mqtt-log-stdout/pkg/config"
+	h "github.com/xenitab/mqtt-log-stdout/pkg/helper"
 	"github.com/xenitab/mqtt-log-stdout/pkg/message"
 	"github.com/xenitab/mqtt-log-stdout/pkg/metrics"
 	"github.com/xenitab/mqtt-log-stdout/pkg/mqtt"
@@ -24,13 +23,13 @@ var (
 )
 
 func main() {
-	cfg, err := newConfigClient()
+	cfg, err := newConfigClient(Version, Revision, Created)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to generate config: %q\n", err)
 		os.Exit(1)
 	}
 
-	err = start(cfg)
+	err = run(cfg)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -38,8 +37,11 @@ func main() {
 	os.Exit(0)
 }
 
-func start(cfg config.Client) error {
-	stopChan := newStopChannel()
+func run(cfg config.Client) error {
+	errGroup, ctx, cancel := h.NewErrGroupAndContext()
+	defer cancel()
+
+	stopChan := h.NewStopChannel()
 	defer signal.Stop(stopChan)
 
 	statusClient := newStatusClient(cfg)
@@ -47,48 +49,28 @@ func start(cfg config.Client) error {
 	metricsServer := newMetricsServer(cfg, statusClient)
 	mqttClient := newMqttClient(cfg, statusClient, messageClient)
 
-	go metricsServer.Start()
+	h.StartService(ctx, errGroup, metricsServer)
+	h.StartService(ctx, errGroup, mqttClient)
 
-	var result error
-	err := mqttClient.Start()
-	if err != nil {
-		statusClient.Print("Received error starting mqtt client", err)
-		result = multierror.Append(result, err)
-	}
-
-	stoppedBy := func() string {
-		select {
-		case sig := <-stopChan:
-			return fmt.Sprintf("os.Signal (%s)", sig)
-		case <-mqttClient.Done():
-			return "mqtt client"
-		case <-metricsServer.Done():
-			return "metrics server"
-		}
-	}()
-
+	stoppedBy := h.WaitForStop(stopChan, ctx)
 	statusClient.Print(fmt.Sprintf("Application stopping, initiated by: %s", stoppedBy), nil)
 
-	err = mqttClient.Stop()
-	if err != nil {
-		statusClient.Print("Received error stopping mqtt client", err)
-		result = multierror.Append(result, err)
-	}
+	cancel()
 
-	err = metricsServer.Stop()
-	if err != nil {
-		statusClient.Print("Received error stopping metrics server", err)
-		result = multierror.Append(result, err)
-	}
+	timeoutCtx, timeoutCancel := h.NewShutdownTimeoutContext()
+	defer timeoutCancel()
 
-	return result
+	h.StopService(timeoutCtx, errGroup, mqttClient)
+	h.StopService(timeoutCtx, errGroup, metricsServer)
+
+	return h.WaitForErrGroup(errGroup)
 }
 
-func newConfigClient() (config.Client, error) {
+func newConfigClient(version, revision, created string) (config.Client, error) {
 	opts := config.Options{
-		Version:  Version,
-		Revision: Revision,
-		Created:  Created,
+		Version:  version,
+		Revision: revision,
+		Created:  created,
 	}
 
 	return config.NewClient(opts)
@@ -134,10 +116,4 @@ func newMqttClient(cfg config.Client, statusClient status.Client, messageClient 
 	}
 
 	return mqtt.NewClient(opts)
-}
-
-func newStopChannel() chan os.Signal {
-	stopChan := make(chan os.Signal, 2)
-	signal.Notify(stopChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGPIPE)
-	return stopChan
 }

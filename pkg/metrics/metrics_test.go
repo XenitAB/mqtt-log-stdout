@@ -2,19 +2,26 @@ package metrics
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/stretchr/testify/require"
+	h "github.com/xenitab/mqtt-log-stdout/pkg/helper"
 	"github.com/xenitab/mqtt-log-stdout/pkg/status"
 	"go.uber.org/goleak"
 )
 
 func TestStart(t *testing.T) {
-	statusClient := newFakeStatusClient()
+	errGroup, ctx, cancel := h.NewErrGroupAndContext()
+	defer cancel()
+
+	statusClient := testNewFakeStatusClient(t)
 
 	opts := Options{
 		Address:      "0.0.0.0",
@@ -23,60 +30,89 @@ func TestStart(t *testing.T) {
 	}
 	metricsServer := NewServer(opts)
 
-	go metricsServer.Start()
+	h.StartService(ctx, errGroup, metricsServer)
+
+	metricsHostAddress := net.JoinHostPort(opts.Address, fmt.Sprint(opts.Port))
+	for start := time.Now(); time.Since(start) < 5*time.Second; {
+		conn, err := net.Dial("tcp", metricsHostAddress)
+		if err == nil {
+			conn.Close()
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	fakeCounter := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "fake_counter",
 		Help: "fake counter",
 	})
 
-	expectedMessageCount := 200
-	for i := 0; i < expectedMessageCount; i++ {
-		fakeCounter.Inc()
+	numberOfWorkers := 10
+	messagesPerWorker := 200
+	expectedMessageCount := messagesPerWorker * numberOfWorkers
+	incrementerErrGroup, _, _ := h.NewErrGroupAndContext()
+
+	for w := 0; w < numberOfWorkers; w++ {
+		incrementerErrGroup.Go(func() error {
+			for i := 0; i < messagesPerWorker; i++ {
+				fakeCounter.Inc()
+			}
+
+			return nil
+		})
 	}
 
-	metrics, err := getPrometheusMetrics("http://localhost:8080/metrics")
-	if err != nil {
-		t.Errorf("Expected err to be nil: %q", err)
-	}
+	err := h.WaitForErrGroup(incrementerErrGroup)
+	require.NoError(t, err)
 
-	err = metricsServer.Stop()
-	if err != nil {
-		fmt.Printf("Error: %q\n", err)
-	}
+	metrics := testGetPrometheusMetrics(t, "http://localhost:8080/metrics")
+
+	cancel()
+
+	timeoutCtx, timeoutCancel := h.NewShutdownTimeoutContext()
+	defer timeoutCancel()
+
+	h.StopService(timeoutCtx, errGroup, metricsServer)
+
+	err = h.WaitForErrGroup(errGroup)
+	require.NoError(t, err)
 
 	messageCount := int(*metrics["fake_counter"].Metric[0].Counter.Value)
-
-	if messageCount != expectedMessageCount {
-		t.Errorf("Expected message count was %d but received: %d", expectedMessageCount, messageCount)
-	}
+	require.Equal(t, expectedMessageCount, messageCount)
 }
 
 func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
-type fakeStatus struct{}
-
-func newFakeStatusClient() status.Client {
-	return &fakeStatus{}
+type testFakeStatus struct {
+	t *testing.T
 }
 
-func (s *fakeStatus) Print(m string, e error) {}
+func testNewFakeStatusClient(t *testing.T) status.Client {
+	t.Helper()
 
-func getPrometheusMetrics(url string) (map[string]*dto.MetricFamily, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
+	return &testFakeStatus{
+		t: t,
 	}
+}
+
+func (s *testFakeStatus) Print(m string, e error) {
+	s.t.Helper()
+}
+
+func testGetPrometheusMetrics(t *testing.T, url string) map[string]*dto.MetricFamily {
+	t.Helper()
+
+	res, err := http.Get(url)
+	require.NoError(t, err)
 
 	body := res.Body
 	defer body.Close()
 
 	var parser expfmt.TextParser
 	mf, err := parser.TextToMetricFamilies(body)
-	if err != nil {
-		return nil, err
-	}
-	return mf, nil
+	require.NoError(t, err)
+
+	return mf
 }
