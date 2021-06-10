@@ -1,8 +1,11 @@
 package metrics
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -28,6 +31,16 @@ func TestStart(t *testing.T) {
 	metricsServer := NewServer(opts)
 
 	h.StartService(ctx, errGroup, metricsServer)
+
+	metricsHostAddress := net.JoinHostPort(opts.Address, fmt.Sprint(opts.Port))
+	for start := time.Now(); time.Since(start) < 5*time.Second; {
+		conn, err := net.Dial("tcp", metricsHostAddress)
+		if err == nil {
+			conn.Close()
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	fakeCounter := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "fake_counter",
