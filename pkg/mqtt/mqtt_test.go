@@ -132,6 +132,7 @@ func TestMain(m *testing.M) {
 		goleak.IgnoreTopFunction("github.com/eclipse/paho%2emqtt%2egolang.(*client).startCommsWorkers.func1"),
 		goleak.IgnoreTopFunction("github.com/eclipse/paho%2emqtt%2egolang.(*router).matchAndDispatch.func1"),
 		goleak.IgnoreTopFunction("github.com/eclipse/paho%2emqtt%2egolang.keepalive"),
+		goleak.IgnoreTopFunction("github.com/eclipse/paho%2emqtt%2egolang.(*router).matchAndDispatch.func2"),
 		goleak.IgnoreTopFunction("github.com/fhmq/hmq/pool.startWorker.func1"),
 		goleak.IgnoreTopFunction("sync.runtime_Semacquire"),
 		goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"),
