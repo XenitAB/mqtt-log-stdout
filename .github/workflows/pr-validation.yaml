@@ -123,7 +123,7 @@ jobs:
           mkdir -p tmp
           make cover
       - name: Send coverage to coverall
-        uses: shogo82148/actions-goveralls@v1.4.5
+        uses: shogo82148/actions-goveralls@v1.4.6
         with:
           path-to-profile: tmp/coverage.out
           ignore: cmd/mqtt-log-stdout/main.go,pkg/gen-docs/main.go
