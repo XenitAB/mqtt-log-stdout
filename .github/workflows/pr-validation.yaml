@@ -123,7 +123,7 @@ jobs:
           mkdir -p tmp
           make cover
       - name: Send coverage to coverall
-        uses: shogo82148/actions-goveralls@v1.4.5
+        uses: shogo82148/actions-goveralls@v1.4.7
         with:
           path-to-profile: tmp/coverage.out
           ignore: cmd/mqtt-log-stdout/main.go,pkg/gen-docs/main.go
@@ -155,7 +155,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1.2.0
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1.5.1
+        uses: docker/setup-buildx-action@v1.6.0
       - name: Build and load (current arch)
         run: |
           docker buildx build --load -t ${{ env.NAME }}:${{ steps.prep.outputs.VERSION }} .
