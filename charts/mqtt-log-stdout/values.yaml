@@ -55,3 +55,6 @@ mqtt_settings:
   host_3: ""
   port: 1883
   topic: ""
+
+metrics:
+  port: 8080
