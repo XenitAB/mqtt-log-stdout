@@ -41,13 +41,19 @@ spec:
               value: "{{ .Values.mqtt_settings.host_3 }}"
             {{- end }}
             - name: MQTT_PORT
-              value: "{{ .Values.mqtt_settings.port}}"
+              value: "{{ .Values.mqtt_settings.port }}"
             - name: LOG_TOPIC
               value: "{{ required "A valid .Values.mqtt_settings.topic entry required!" .Values.mqtt_settings.topic}}"
+            - name: METRICS_PORT
+              value: "{{ .Values.metrics.port }}"
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.metrics.port }}
+              name: metrics
+              protocol: TCP
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
