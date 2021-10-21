@@ -12,7 +12,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.3.0
-	go.uber.org/goleak v1.1.11
+	go.uber.org/goleak v1.1.12
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
