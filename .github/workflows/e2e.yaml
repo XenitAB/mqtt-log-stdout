@@ -48,3 +48,4 @@ jobs:
         run: |
           set -e
           make e2e TAG=${{ steps.prep.outputs.VERSION }}
+
