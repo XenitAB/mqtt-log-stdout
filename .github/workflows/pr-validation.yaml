@@ -12,7 +12,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -74,7 +74,7 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -98,22 +98,11 @@ jobs:
           export PATH=${PATH}:~/.local/bin
           make gosec
 
-  semgrep:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: returntocorp/semgrep-action@v1
-        env: 
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: 284
-
   coverage:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Setup go
         uses: actions/setup-go@v2
         with:
@@ -123,7 +112,7 @@ jobs:
           mkdir -p tmp
           make cover
       - name: Send coverage to coverall
-        uses: shogo82148/actions-goveralls@v1.5.0
+        uses: shogo82148/actions-goveralls@v1.5.1
         with:
           path-to-profile: tmp/coverage.out
           ignore: cmd/mqtt-log-stdout/main.go,pkg/gen-docs/main.go
@@ -132,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
       - name: Prepare
         id: prep
         run: |
@@ -146,7 +135,7 @@ jobs:
         with:
           dockerfile: Dockerfile
       - name: Cache container layers
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
