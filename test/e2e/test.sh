@@ -8,8 +8,8 @@ timestamp() {
 
 publish_messages() {
     for i in `seq 1 $1`; do
-        mosquitto_pub -h localhost -p 1883 -q 1 -t "test/log_entry" -i "publisher-${2}" -m "End-to-end test message (publisher-${2}): ${i}"
-    done
+        echo "End-to-end test message (publisher-${2}): ${i}"
+    done | mosquitto_pub -l -h localhost -p 1883 -q 1 -t "test/log_entry" -i "publisher-${2}"
 }
 
 export -f publish_messages
