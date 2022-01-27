@@ -77,7 +77,7 @@ gen-docs:
 .PHONY: build
 .SILENT: build
 build:
-	go build -ldflags "-w -s -X main.Version=$(VERSION) -X main.Revision=$(REVISION) -X main.Created=$(CREATED)" -o bin/mqtt-log-stdout cmd/mqtt-log-stdout/main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-w -s -X main.Version=$(VERSION) -X main.Revision=$(REVISION) -X main.Created=$(CREATED)" -o bin/mqtt-log-stdout cmd/mqtt-log-stdout/main.go
 
 .PHONY: e2e
 .SILENT: e2e
