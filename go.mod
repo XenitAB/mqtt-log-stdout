@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
-	github.com/eclipse/paho.mqtt.golang v1.3.5
+	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
 	github.com/gorilla/mux v1.8.0
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
