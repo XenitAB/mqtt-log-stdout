@@ -15,5 +15,7 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/goleak v1.1.12
 	go.uber.org/zap v1.13.0 // indirect
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/net v0.0.0-20220127074510-2fabfed7e28f // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	google.golang.org/protobuf v1.27.1 // indirect
 )
