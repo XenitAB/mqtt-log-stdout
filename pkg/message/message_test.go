@@ -1,7 +1,7 @@
 package message
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 )
@@ -23,7 +23,7 @@ func TestPrint(t *testing.T) {
 	messageClient.Print("fake message")
 	w.Close()
 
-	outputBytes, err := ioutil.ReadAll(r)
+	outputBytes, err := io.ReadAll(r)
 	if err != nil {
 		t.Errorf("Expected err to be nil: %q", err)
 	}
