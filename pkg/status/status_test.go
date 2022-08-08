@@ -2,7 +2,7 @@ package status
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -25,7 +25,7 @@ func TestPrint(t *testing.T) {
 	statusClient.Print("fake message", nil)
 	w.Close()
 
-	outputBytes, err := ioutil.ReadAll(r)
+	outputBytes, err := io.ReadAll(r)
 	if err != nil {
 		t.Errorf("Expected err to be nil: %q", err)
 	}
@@ -62,7 +62,7 @@ func TestPrintErr(t *testing.T) {
 	statusClient.Print("fake message", fmt.Errorf("fake error"))
 	w.Close()
 
-	outputBytes, err := ioutil.ReadAll(r)
+	outputBytes, err := io.ReadAll(r)
 	if err != nil {
 		t.Errorf("Expected err to be nil: %q", err)
 	}
