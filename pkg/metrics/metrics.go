@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,8 +32,9 @@ func NewServer(opts Options) *Server {
 	listenAddress := net.JoinHostPort(opts.Address, fmt.Sprintf("%d", opts.Port))
 
 	srv := &http.Server{
-		Addr:    listenAddress,
-		Handler: router,
+		Addr:              listenAddress,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	return &Server{

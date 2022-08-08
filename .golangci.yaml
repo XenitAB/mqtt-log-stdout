@@ -6,6 +6,7 @@ linters:
   enable:
     - gocyclo
     - misspell
+    - gosec
 
 linters-settings:
   gocyclo:
@@ -16,3 +17,4 @@ issues:
     - path: _test\.go
       linters:
         - gocyclo
+        - gosec

@@ -14,7 +14,7 @@ endif
 
 .PHONY: all
 .SILENT: all
-all: tidy lint fmt vet gosec test build
+all: tidy lint fmt vet test build
 
 .PHONY: lint
 .SILENT: lint
@@ -52,11 +52,6 @@ start-mqtt:
 stop-mqtt:
 	-docker stop $$(docker ps -f name=vernemq1 -q)
 	docker rm $$(docker ps -a -f name=vernemq1 -q)
-
-.PHONY: gosec
-.SILENT: gosec
-gosec:
-	gosec ./...
 
 .PHONY: cover
 .SILENT: cover
