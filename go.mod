@@ -7,7 +7,7 @@ require (
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
 	github.com/gorilla/mux v1.8.0
 	github.com/prometheus/client_golang v1.13.0
-	github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.11.1
