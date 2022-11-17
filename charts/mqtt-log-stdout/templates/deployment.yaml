@@ -46,6 +46,10 @@ spec:
               value: "{{ required "A valid .Values.mqtt_settings.topic entry required!" .Values.mqtt_settings.topic}}"
             - name: METRICS_PORT
               value: "{{ .Values.metrics.port }}"
+            {{- if .Values.mqtt_settings.username }}
+            - name: MQTT_USERNAME
+              value: "{{ .Values.mqtt_settings.username }}"
+            {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
