@@ -10,13 +10,13 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.7.0
-	github.com/urfave/cli/v2 v2.11.1
+	github.com/urfave/cli/v2 v2.24.3
 	go.uber.org/goleak v1.1.12
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 )
 
 require (
-	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798 // indirect
 	github.com/Shopify/sarama v1.23.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
