@@ -6,10 +6,10 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
 	github.com/gorilla/mux v1.8.0
-	github.com/prometheus/client_golang v1.13.0
-	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.37.0
-	github.com/stretchr/testify v1.7.0
+	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_model v0.3.0
+	github.com/prometheus/common v0.42.0
+	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli/v2 v2.11.1
 	go.uber.org/goleak v1.1.12
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
@@ -37,7 +37,7 @@ require (
 	github.com/jcmturner/gofork v0.0.0-20190328161633-dc7c13fece03 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
@@ -59,8 +59,8 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20220805013720-a33c5aa5df48 // indirect
-	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
