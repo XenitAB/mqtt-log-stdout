@@ -3,7 +3,7 @@ module github.com/xenitab/mqtt-log-stdout
 go 1.19
 
 require (
-	github.com/eclipse/paho.mqtt.golang v1.4.1
+	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/fhmq/hmq v0.0.0-20210318020249-ccbe364f9fbe
 	github.com/gorilla/mux v1.8.0
 	github.com/prometheus/client_golang v1.13.0
